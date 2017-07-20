@@ -14,49 +14,49 @@ if CommandLine.arguments.count == 1 {
     exit(1)
 }
 
-let argument = CommandLine.arguments[1]
-var filePaths: [String] = []
-let suffixStoryBoard = ".storyboard"
-if argument.hasSuffix(suffixStoryBoard) {
-    filePaths = [argument]
-} else {
-    print("Invalid path to .storyboard files")
-}
+var myDict: NSMutableDictionary = [:]
+var item = 0
 
-let result = bash(command: "ibtool ", arguments: ["--warnings", "--errors", "--notices", filePaths[0]])
-if (result.characters.count > 0){
-    if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-        var path = dir.appendingPathComponent("file.plist")
-        do {
-            try result.write(to: path, atomically: false, encoding: String.Encoding.utf8)
-        }
-        catch { print("error : \(error)") }
-        let result2 = bash(command: "plutil ", arguments: ["-convert", "json",  "-o", "-", path.relativePath])
-        path = dir.appendingPathComponent("file.json")
-        do {
-            try result2.write(to: path, atomically: false, encoding: String.Encoding.utf8)
-        }
-        catch { print("error : \(error)") }
-        print(result2)
-        
-        
-        
-        //reading
-        do {
-            let text2 = try String(contentsOf: path, encoding: String.Encoding.utf8)
-            print(text2)
-            if let data = text2.data(using: String.Encoding.utf8) {
+for var cmd in (1..<CommandLine.arguments.count) {
+    let argument = CommandLine.arguments[cmd]
+    var filePaths: [String] = []
+    let suffixStoryBoard = ".storyboard"
+    if argument.hasSuffix(suffixStoryBoard) {
+        filePaths = [argument]
+    } else {
+        print("Invalid path to .storyboard files")
+    }
+    
+    for filePath in filePaths {
+        let result = bash(command: "ibtool ", arguments: ["--warnings", "--errors", "--notices", filePath])
+        if (result.characters.count > 0){
+            if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                var path = dir.appendingPathComponent("file.plist")
                 do {
-                    let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String:Any]
-                } catch {
-                    print("error : \(error)")
+                    try result.write(to: path, atomically: false, encoding: String.Encoding.utf8)
                 }
+                catch { print("error : \(error)") }
+                let result2 = bash(command: "plutil ", arguments: ["-convert", "json",  "-o", "-", path.relativePath])
+                path = dir.appendingPathComponent("file.json")
+                do {
+                    try result2.write(to: path, atomically: false, encoding: String.Encoding.utf8)
+                }
+                catch { print("error : \(error)") }
+                
+                let filename = filePath.components(separatedBy: "/")
+                myDict.setValue(result2, forKey: filename[filename.count-1])
+                item += item
             }
         }
-        catch {
-            print("error : \(error)")}
-        
     }
 }
+
+if (myDict.count > 0) {
+    if let jsonData = try? JSONSerialization.data( withJSONObject: myDict, options: []) {
+        let stringValue = String(data: jsonData, encoding: .ascii)
+        print(stringValue!)
+    }
+}
+
 exit(0)
 
